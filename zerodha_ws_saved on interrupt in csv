@@ -1,0 +1,56 @@
+from kiteconnect import KiteConnect
+from kiteconnect import KiteTicker
+import time
+import pandas as pd
+# import matplotlib.pyplot as plt
+
+kws = KiteTicker("q6g5mpsiguf4o6dm", "XNtmR8VcSj5EX70xDL4dTW9SsNjhBqkY")
+
+tokens = [19473666, 19473922, 13563394, 13563650, 13738754, 13739010]  # Updated tokens
+instrument_dict = {
+    19473666: 'FINNIFTY23JUL20500CE',
+    19473922: 'FINNIFTY23JUL20500PE',
+    13563394: 'BANKNIFTY23JUL46100CE',
+    13563650: 'BANKNIFTY23JUL46100PE',
+    13738754: 'NIFTY23JUL19750CE',
+    13739010: 'NIFTY23JUL19750PE'
+}
+data = {token: [] for token in tokens}
+
+def on_ticks(ws, ticks):
+    for tick in ticks:
+        instrument_token = tick['instrument_token']
+        instrument = instrument_dict.get(instrument_token)
+        last_price = tick['last_price']
+        timestamp = tick['exchange_timestamp']
+        data[instrument_token].append({'instrument': instrument, 'exchange_timestamp': timestamp, 'last_price': last_price})
+        df = pd.DataFrame(data[instrument_token])
+        print(df)  # Print the updated data list
+        
+        
+def on_connect(ws, response):
+    ws.subscribe(tokens)
+    ws.set_mode(ws.MODE_FULL, tokens)
+
+kws.on_ticks = on_ticks
+kws.on_connect = on_connect 
+kws.connect(threaded=True)
+
+stop_program = False
+
+try:
+    while not stop_program:
+        time.sleep(1)  # Adjust the sleep duration as per your requirements
+except KeyboardInterrupt:
+    # Stop the WebSocket connection gracefully when the user interrupts the script
+    print("Stopping the program.")
+    kws.stop()
+    stop_program = True  # Set the flag to stop the program after the loop
+
+# Combine data from the 'data' dictionary into a single DataFrame
+combined_data = pd.concat([pd.DataFrame(data[token]) for token in tokens])
+
+# Save the combined data to an Excel file
+combined_data.to_csv(r'E:\imp\Trading\Trading\python for trading\Aseem Bootcamp\python examples\Zerodha\Login\tick_data.csv')
+
+print("Data saved to 'tick_data.csv'")
