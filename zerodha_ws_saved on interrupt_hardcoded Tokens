@@ -1,3 +1,7 @@
+# Tokens are hardcoded in code
+# Files used -  tick_data.csv to save the output at the interrupt
+# Program needs to be interrupted and then only data will be saved
+
 from kiteconnect import KiteConnect
 from kiteconnect import KiteTicker
 import time
