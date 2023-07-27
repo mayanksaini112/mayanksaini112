@@ -1,0 +1,60 @@
+# Two external files used - 1 for input Tokens named tradingsymbols_and_tokens.csv and tick_data.csv to save data in csv file on interrupt
+# Need to change the access code each day to run this file.
+
+from kiteconnect import KiteConnect
+from kiteconnect import KiteTicker
+import time
+import pandas as pd
+# import matplotlib.pyplot as plt
+
+kws = KiteTicker("q6g5mpsiguf4o6dm", "riWRqICIo4e4wDzsGlRE3trN9OEGygF1")
+
+# Load data from the Excel file
+df = pd.read_csv(r'E:\imp\Trading\Trading\python for trading\Aseem Bootcamp\python examples\Zerodha\Login\tradingsymbols_and_tokens.csv')
+
+# Create the dictionary
+instrument_dict = df.set_index('instrument_token')['tradingsymbol'].to_dict()
+
+# Your tokens are the keys of the dictionary
+tokens = list(instrument_dict.keys())
+
+
+data = {token: [] for token in tokens}
+
+def on_ticks(ws, ticks):
+    for tick in ticks:
+        instrument_token = tick['instrument_token']
+        instrument = instrument_dict.get(instrument_token)
+        last_price = tick['last_price']
+        timestamp = tick['exchange_timestamp']
+        data[instrument_token].append({'instrument': instrument, 'exchange_timestamp': timestamp, 'last_price': last_price})
+        df = pd.DataFrame(data[instrument_token])
+        print(df)  # Print the updated data list
+        
+        
+def on_connect(ws, response):
+    ws.subscribe(tokens)
+    ws.set_mode(ws.MODE_FULL, tokens)
+
+kws.on_ticks = on_ticks
+kws.on_connect = on_connect 
+kws.connect(threaded=True)
+
+stop_program = False
+
+try:
+    while not stop_program:
+        time.sleep(1)  # Adjust the sleep duration as per your requirements
+except KeyboardInterrupt:
+    # Stop the WebSocket connection gracefully when the user interrupts the script
+    print("Stopping the program.")
+    kws.stop()
+    stop_program = True  # Set the flag to stop the program after the loop
+
+# Combine data from the 'data' dictionary into a single DataFrame
+combined_data = pd.concat([pd.DataFrame(data[token]) for token in tokens])
+
+# Save the combined data to an Excel file
+combined_data.to_csv(r'E:\imp\Trading\Trading\python for trading\Aseem Bootcamp\python examples\Zerodha\Login\tick_data.csv')
+
+print("Data saved to 'tick_data.csv'")
